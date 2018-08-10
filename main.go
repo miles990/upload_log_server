@@ -18,6 +18,7 @@ import (
 func main() {
 
 	setLogDirectory()
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	f, err := os.OpenFile("logfile.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0777)
 	if err != nil {
@@ -89,7 +90,9 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 					logError(err)
 					return
 				}
-				w.Write([]byte("uploaded file:" + hdr.Filename + ";length:" + strconv.Itoa(int(written))))
+				var successInfo = "uploaded file:" + hdr.Filename + ";length:" + strconv.Itoa(int(written))
+				logInfo(successInfo)
+				w.Write([]byte(successInfo))
 			}
 		}
 	}
