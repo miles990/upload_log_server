@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -34,9 +35,9 @@ func main() {
 	http.Handle("/logs/", fs)
 
 	log.SetOutput(f)
-	logInfo("Server started on localhost:8000, use /upload for uploading files and /logs/{fileName} for downloading")
+	logInfo("Server started on localhost:8888, use /upload for uploading files and /logs/{fileName} for downloading")
 
-	logError(http.ListenAndServe(":8000", nil))
+	logError(http.ListenAndServe(":8888", nil))
 
 	defer f.Close()
 
@@ -66,23 +67,31 @@ func uploadFileHandler(w http.ResponseWriter, r *http.Request) {
 		t.Execute(w, token)
 	} else {
 		r.ParseMultipartForm(32 << 20)
-		file, handler, err := r.FormFile("uploadfile")
-		if err != nil {
-			logError(err)
-			return
+		// fmt.Println("No memory problem")
+		var err error
+		for _, fheaders := range r.MultipartForm.File {
+			for _, hdr := range fheaders {
+				// open uploaded
+				var infile multipart.File
+				if infile, err = hdr.Open(); nil != err {
+					logError(err)
+					return
+				}
+				// open destination
+				var outfile *os.File
+				if outfile, err = os.Create("./logs/" + hdr.Filename); nil != err {
+					logError(err)
+					return
+				}
+				// 32K buffer copy
+				var written int64
+				if written, err = io.Copy(outfile, infile); nil != err {
+					logError(err)
+					return
+				}
+				w.Write([]byte("uploaded file:" + hdr.Filename + ";length:" + strconv.Itoa(int(written))))
+			}
 		}
-		defer file.Close()
-
-		f, err := os.OpenFile("./logs/"+handler.Filename, os.O_WRONLY|os.O_CREATE, 0777)
-		if err != nil {
-			logError(err)
-			return
-		}
-		defer f.Close()
-		io.Copy(f, file)
-
-		logInfo(handler.Header)
-		fmt.Fprintf(w, "%v", handler.Header)
 	}
 
 }
