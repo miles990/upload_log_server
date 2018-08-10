@@ -112,10 +112,10 @@ func randToken(len int) string {
 
 func logError(err interface{}) {
 	fmt.Println(err)
-	log.Fatalf("%v", err)
+	log.Fatalf("[ERROR]%v", err)
 }
 
 func logInfo(info interface{}) {
 	fmt.Println(info)
-	log.Printf("%v", info)
+	log.Printf("[INFO]%v", info)
 }
